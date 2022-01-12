@@ -1,0 +1,56 @@
+Function to import data from BR
+
+import pandas as pd
+
+def extract_NBA_schedule (url):
+
+  #extract url
+  url = pd.read_html(url)
+  
+  #convert to data frame
+  df = url[0].copy()
+  df.head()
+
+  #remove and clean columns
+  drop_cols = [col for col in df.columns if col.__contains__('Notes')]
+  df.drop(drop_cols, axis=1, inplace=True)
+
+  df['Start (ET)'] = df['Start (ET)'].astype(str)
+
+  df.rename(columns={'Visitor/Neutral': 'Away', 'PTS': 'Away_PTS', 'Home/Neutral' : 'Home', 'PTS.1' : 'Home_PTS', 'Start (ET)' : 'Time'}, inplace=True)
+
+  df['Time'] = df['Time'] + 'm'
+
+  df.drop(['Unnamed: 6', 'Unnamed: 7'], axis=1, inplace=True)
+
+  return df
+
+def NBA_BR_RESULTS_SCRAPER (year):
+
+  url = 'https://www.basketball-reference.com/leagues/NBA_' + year + '_games-' + 'january' + '.html'
+
+  #create list of months
+  months = ('january', 'february', 'march', 'april','may', 'june', 'july' , 'december')
+
+  #create a url for each month of a specific year: (2020)
+  url_months = [url[:60] + date + '.html' for date in months]
+  url_months
+
+  #join dataframes together with FOR LOOP
+  dfs = []
+  for url in url_months:
+    df= extract_NBA_schedule (url)
+    dfs.append(df)
+
+  #find the first abd last tables and creat one data fram, then sort by date
+  df = pd.concat ([dfs[0],dfs[1]])
+  for i in range (2, len(dfs)):
+    df=pd.concat([df,dfs[i]])
+
+  df['Date'] =pd.to_datetime(df.Date)
+  df['Time'] = pd.to_datetime(df['Time'], format='%I:%M%p').dt.time
+
+  df.sort_values(['Date', 'Time'], inplace=True, ascending= (True, True))
+
+  return df
+
